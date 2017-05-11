@@ -1,11 +1,15 @@
 {
 	"name": "homebridge-xiaomi-mi-robot-vacuum",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "XiaoMi Mi robot vacuum plugin for Homebridge.",
 	"license": "MIT",
 	"keywords": [
 		"homebridge-plugin"
 	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/seikan/homebridge-xiaomi-mi-robot-vacuum"
+	},
 	"engines": {
 		"node": ">=0.12.0",
 		"homebridge": ">=0.2.0",
