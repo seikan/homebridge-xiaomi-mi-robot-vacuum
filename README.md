@@ -1,0 +1,1 @@
+This is XiaoMi Mi robot vacuum plugin for [Homebridge](https://github.com/nfarina/homebridge).
