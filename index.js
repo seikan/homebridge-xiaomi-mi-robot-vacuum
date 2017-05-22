@@ -23,8 +23,9 @@ function MiRobotVacuum(log, config) {
 	if(!this.token)
 		throw new Error('Your must provide token of the robot vacuum.');
 
-	// Vacuum cleaner is not available in Homekit yet, use as Switch
-	this.service = new Service.Fan(this.name);
+	// Vacuum cleaner is not available in Homekit yet, register a Fan
+	this.fanService = new Service.Fan(this.name);
+	this.batteryService = new Service.BatteryService(this.name + ' Battery');
 
 	this.serviceInfo = new Service.AccessoryInformation();
 
@@ -33,19 +34,27 @@ function MiRobotVacuum(log, config) {
 		.setCharacteristic(Characteristic.Model, 'Robot Vacuum Cleaner')
 		.setCharacteristic(Characteristic.SerialNumber, '526B-0080-4E2D456BF705');
 
-	this.service
+	this.fanService
 		.getCharacteristic(Characteristic.On)
-		.on('get', this.getOn.bind(this))
-		.on('set', this.setOn.bind(this));
+		.on('get', this.getPowerState.bind(this))
+		.on('set', this.setPowerState.bind(this));
 
-	this.service
+	this.fanService
 		.getCharacteristic(Characteristic.RotationSpeed)
 		.on('get', this.getRotationSpeed.bind(this))
 		.on('set', this.setRotationSpeed.bind(this));
 
-	this.service
-		.addCharacteristic(Characteristic.BatteryLevel)
+	this.batteryService
+		.getCharacteristic(Characteristic.BatteryLevel)
 		.on('get', this.getBatteryLevel.bind(this));
+
+	this.batteryService
+		.getCharacteristic(Characteristic.ChargingState)
+		.on('get', this.getChargingState.bind(this));
+
+	this.batteryService
+		.getCharacteristic(Characteristic.StatusLowBattery)
+		.on('get', this.getStatusLowBattery.bind(this));
 
 	this.discover();
 }
@@ -71,13 +80,13 @@ MiRobotVacuum.prototype = {
 			})
 			.catch(function(err){
 				log.debug(err);
-				throw new Error('No able to initialize robot vacuum.');
+				throw new Error('Not able to initialize robot vacuum.');
 			});
 	},
 
-	getOn: function(callback) {
-		if(!this.device.state){
-			callback(null, false);
+	getPowerState: function(callback) {
+		if(!this.device){
+			callback(new Error('No robot is discovered.'));
 			return;
 		}
 
@@ -96,20 +105,26 @@ MiRobotVacuum.prototype = {
 		}
 	},
 
-	setOn: function(powerOn, callback) {
+	setPowerState: function(state, callback) {
 		if(!this.device){
-			callback(new Error('No robot vacuum is discovered.'));
+			callback(new Error('No robot is discovered.'));
 			return;
 		}
 
-		(powerOn) ? this.device.start() : this.device.charge();
+		if(state)
+			this.device.start();
+
+		else{
+			this.device.pause();
+			this.device.charge();
+		}
 
 		callback();
 	},
 
 	getRotationSpeed: function(callback){
-		if(!this.device.fanPower){
-			callback(null, 0);
+		if(!this.device){
+			callback(new Error('No robot is discovered.'));
 			return;
 		}
 
@@ -118,19 +133,65 @@ MiRobotVacuum.prototype = {
 
 	setRotationSpeed: function(speed, callback){
 		if(!this.device){
-			callback();
+			callback(new Error('No robot is discovered.'));
 			return;
 		}
+
+		var speeds = [
+			0,	// Idle
+			38,	// Quiet
+			60,	// Balanced
+			77,	// Turbo
+			90	// Max Speed
+		];
+
+		for(var item in speeds){
+			if(speed <= item){
+				speed = item;
+				break;
+			}
+		}
+		
 		this.device.setFanPower(speed);
-		callback(null, this.device.fanSpeed);
+		callback(null, speed);
 	},
 
 	getBatteryLevel: function(callback) {
-		if(!this.device.battery){
-			callback(null, 0);
+		if(!this.device){
+			callback(new Error('No robot is discovered.'));
 			return;
 		}
+
 		callback(null, this.device.battery);
+	},
+
+	getStatusLowBattery: function(callback) {
+		if(!this.device){
+			callback(new Error('No robot is discovered.'));
+			return;
+		}
+
+		callback(null, (this.device.battery < 30) ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+	},
+
+	getChargingState: function(callback) {
+		if(!this.device){
+			callback(new Error('No robot is discovered.'));
+			return;
+		}
+
+		switch(this.device.state){
+			case 'charging':
+				callback(null, Characteristic.ChargingState.CHARGING);
+			break;
+
+			case 'charger-offline':
+				callback(null, Characteristic.ChargingState.NOT_CHARGEABLE);
+			break;
+
+			default:
+				callback(null, Characteristic.ChargingState.NOT_CHARGING);
+		}
 	},
 
 	identify: function(callback) {
@@ -138,6 +199,6 @@ MiRobotVacuum.prototype = {
 	},
 
 	getServices: function() {
-		return [this.serviceInfo, this.service];
+		return [this.serviceInfo, this.fanService, this.batteryService];
 	}
 };

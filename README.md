@@ -8,7 +8,16 @@ This is Xiaomi Mi Robot Vacuum plugin for [Homebridge](https://github.com/nfarin
 
 * Switch on / off. When off, it will returning to charging dock automatically.
 
-* Control suction power.
+* Control suction power by adjust the fan speed.
+
+  - Quiet (1 -38%)
+  - Balance (39 - 60%)
+  - Turbo (61 - 77%)
+  - Max Speed (>77%)
+
+* Display battery level, and notify on low battery.
+
+* Display battery charging state.
 
   ​
 
