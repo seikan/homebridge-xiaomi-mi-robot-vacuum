@@ -78,7 +78,7 @@ This is Xiaomi Mi Robot Vacuum plugin for [Homebridge](https://github.com/nfarin
           "accessory": "MiRobotVacuum",
           "name": "Vacuum Cleaner",
           "ip": "IP_ADDRESS_OF_THE_ROBOT",
-          "token": "TOKEN_DISCOVERED_FROM_STEP_7",
+          "token": "TOKEN_DISCOVERED_FROM_STEP_7"
         }
       ]
     ```
