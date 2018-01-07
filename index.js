@@ -11,10 +11,13 @@ module.exports = function(homebridge) {
 }
 
 function MiRobotVacuum(log, config) {
+	this.services = [];
 	this.log = log;
 	this.name = config.name || 'Vacuum Cleaner';
 	this.ip = config.ip;
 	this.token = config.token;
+	this.pause = config.pause;
+	this.device = null;
 
 	if(!this.ip)
 		throw new Error('Your must provide IP address of the robot vacuum.');
@@ -33,6 +36,8 @@ function MiRobotVacuum(log, config) {
 		.setCharacteristic(Characteristic.Model, 'Robot Vacuum Cleaner')
 		.setCharacteristic(Characteristic.SerialNumber, '526B-0080-4E2D456BF705');
 
+	this.services.push(this.serviceInfo);
+
 	this.fanService
 		.getCharacteristic(Characteristic.On)
 		.on('get', this.getPowerState.bind(this))
@@ -42,6 +47,8 @@ function MiRobotVacuum(log, config) {
 		.getCharacteristic(Characteristic.RotationSpeed)
 		.on('get', this.getRotationSpeed.bind(this))
 		.on('set', this.setRotationSpeed.bind(this));
+
+	this.services.push(this.fanService);
 
 	this.batteryService
 		.getCharacteristic(Characteristic.BatteryLevel)
@@ -54,6 +61,19 @@ function MiRobotVacuum(log, config) {
 	this.batteryService
 		.getCharacteristic(Characteristic.StatusLowBattery)
 		.on('get', this.getStatusLowBattery.bind(this));
+
+	this.services.push(this.batteryService);
+
+	if(this.pause){
+		this.pauseService = new Service.Switch(this.name + ' Pause');
+
+		this.pauseService
+			.getCharacteristic(Characteristic.On)
+			.on('get', this.getPauseState.bind(this))
+			.on('set', this.setPauseState.bind(this));
+
+		this.services.push(this.pauseService);
+	}
 
 	this.discover();
 }
@@ -121,6 +141,33 @@ MiRobotVacuum.prototype = {
 		callback();
 	},
 
+	getPauseState: function(callback) {
+		if(!this.device){
+			callback(new Error('No robot is discovered.'));
+			return;
+		}
+
+		callback(null, (this.device.state == 'paused'));
+	},
+
+	setPauseState: function(state, callback) {
+		if(!this.device){
+			callback(new Error('No robot is discovered.'));
+			return;
+		}
+
+		if(state){
+			if(this.device.state == 'cleaning' || this.device.state == 'returning' || this.device.state == 'spot-cleaning'){
+				this.device.pause();
+			}
+		}
+		else if(this.device.state == 'paused'){
+			this.device.start();
+		}
+
+		callback();
+	},
+	
 	getRotationSpeed: function(callback){
 		if(!this.device){
 			callback(new Error('No robot is discovered.'));
@@ -150,8 +197,8 @@ MiRobotVacuum.prototype = {
 				break;
 			}
 		}
-		
-		this.device.setFanPower(speed);
+
+		this.device.setFanPower(parseInt(speed));
 		callback(null, speed);
 	},
 
@@ -198,6 +245,6 @@ MiRobotVacuum.prototype = {
 	},
 
 	getServices: function() {
-		return [this.serviceInfo, this.fanService, this.batteryService];
+		return this.services;
 	}
 };

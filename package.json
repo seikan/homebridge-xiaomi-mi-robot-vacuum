@@ -1,6 +1,6 @@
 {
   "name": "homebridge-xiaomi-mi-robot-vacuum",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Xiaomi Mi robot vacuum plugin for Homebridge.",
   "license": "MIT",
   "keywords": [
