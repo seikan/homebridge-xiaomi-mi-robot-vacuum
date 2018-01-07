@@ -15,7 +15,6 @@ function MiRobotVacuum(log, config) {
 	this.name = config.name || 'Vacuum Cleaner';
 	this.ip = config.ip;
 	this.token = config.token;
-	this.device = null;
 
 	if(!this.ip)
 		throw new Error('Your must provide IP address of the robot vacuum.');
